@@ -1,17 +1,14 @@
-const express = require('express');
-const app = express();
+const express = require('express')
+const app = express()
 const bodyParser = require('body-parser');
 const cors = require('cors');
-const path = require('path');
 
-const port = process.env.PORT || 3005;
 
+const port = 3005
 
 app.use(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
-
-app.use(express.static(path.join(__dirname)));  // Изменено
 
 let allData = Array.from({ length: 100 }, (_, i) => i + 1);
 let selectedData = new Set();
@@ -72,16 +69,17 @@ app.post('/api/sort', (req, res) => {
         res.sendStatus(200);
     }
 
+    // sortedData = req.body.newOrder;
 });
 app.get('/api/getSort', (req, res) => {
     res.json(sortedData);
 });
 
-app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname,'index.html'));
 });
-
 
 app.listen(port, () => {
-    console.log(`Example app listening on port ${port}`);
-});
+    console.log(`Example app listening on port ${port}`)
+})
+
