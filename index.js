@@ -1,18 +1,24 @@
-const express = require('express')
-const app = express()
+const express = require('express');
+const app = express();
 const bodyParser = require('body-parser');
 const cors = require('cors');
 
-
-const port = 3005
+const port = 3005;
 
 app.use(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 
-let allData = Array.from({ length: 100 }, (_, i) => i + 1);
+const ALL_DATA_LENGTH = 1000000;
+let sortedDataIndexMap = new Map();
+let sortedData = Array.from({ length: ALL_DATA_LENGTH }, (_, i) => {
+    const value = i + 1;
+    sortedDataIndexMap.set(value, i);
+    return value;
+});
+
 let selectedData = new Set();
-let sortedData = [...allData];
+
 
 // Маршруты API
 
@@ -26,7 +32,8 @@ app.get('/api/data', (req, res) => {
     let data = sortedData;
 
     if (term) {
-        data = sortedData.filter(item => String(item).includes(term));
+        const searchTerm = String(term).toLowerCase(); // Convert term to string and lowercase
+        data = sortedData.filter(item => String(item).toLowerCase().includes(searchTerm)); // Use includes
     }
 
     const result = data.slice(startIndex, endIndex);
@@ -56,28 +63,54 @@ app.post('/api/selected/remove', (req, res) => {
 
 app.post('/api/sort', (req, res) => {
     const search = req.body.search || false;
-    const {draggedItem, data} = req.body;
-    const toIndex = sortedData.indexOf(data)
-    const fromIndex = sortedData.indexOf(draggedItem)
+    const { draggedItem, data } = req.body;
+
+
     if (search) {
+        const toIndex = sortedDataIndexMap.get(data);
+        const fromIndex = sortedDataIndexMap.get(draggedItem);
+
+        if (toIndex === undefined || fromIndex === undefined) {
+            console.error("Element not found in sortedDataIndexMap");
+            return res.sendStatus(400);
+        }
         [sortedData[fromIndex], sortedData[toIndex]] = [sortedData[toIndex], sortedData[fromIndex]];
-        res.json(sortedData)
+        
+        sortedDataIndexMap.set(data, fromIndex);
+        sortedDataIndexMap.set(draggedItem, toIndex);
+
+        const searchTerm = String(req.query.search).toLowerCase();
+        const filteredData = sortedData.filter(item => String(item).toLowerCase().includes(searchTerm));
+
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 20;
+        const startIndex = (page - 1) * limit;
+        const endIndex = page * limit;
+        const result = filteredData.slice(startIndex, endIndex);
+
+        res.json({
+            data: result,
+            total: filteredData.length,
+            selected: Array.from(selectedData)
+        });
+        return;
+
     } else {
-        const { fromIndex, toIndex, data } = req.body;
-        sortedData.splice(fromIndex, 1, data)
-        sortedData.splice(toIndex, 1, draggedItem)
+        const { fromIndex, toIndex } = req.body;
+        const temp = sortedData[fromIndex];
+        sortedData[fromIndex] = sortedData[toIndex];
+        sortedData[toIndex] = temp;
+        sortedDataIndexMap.set(sortedData[fromIndex], fromIndex);
+        sortedDataIndexMap.set(sortedData[toIndex], toIndex);
         res.sendStatus(200);
     }
 
-    // sortedData = req.body.newOrder;
+
 });
 app.get('/api/getSort', (req, res) => {
     res.json(sortedData);
 });
 
-
-
 app.listen(port, () => {
     console.log(`Example app listening on port ${port}`)
 })
-
