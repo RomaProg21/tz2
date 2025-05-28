@@ -32,8 +32,8 @@ app.get('/api/data', (req, res) => {
     let data = sortedData;
 
     if (term) {
-        const searchTerm = String(term).toLowerCase(); // Convert term to string and lowercase
-        data = sortedData.filter(item => String(item).toLowerCase().includes(searchTerm)); // Use includes
+        const searchTerm = String(term).toLowerCase();
+        data = sortedData.filter(item => String(item).toLowerCase().includes(searchTerm)); 
     }
 
     const result = data.slice(startIndex, endIndex);
